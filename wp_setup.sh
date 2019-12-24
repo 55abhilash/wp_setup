@@ -36,7 +36,7 @@ serv="\tserver_name $domain_name;\n"
 loc="\tlocation / "
 loc_sub="\t\ttry_files \$uri \$uri/ =404;\n\t$clbr"
 locphp="\tlocation ~ \.php$ "
-locphp_sub="\t\tfastcgi_pass unix:/run/php/php7.0-fpm.sock;\n\t\tfastcgi_index index.php;\n\t\tfastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;\n\t\tinclude fastcgi_params;\n\t$clbr"
+locphp_sub="\t\tfastcgi_pass unix:/run/php/php7.3-fpm.sock;\n\t\tfastcgi_index index.php;\n\t\tfastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;\n\t\tinclude fastcgi_params;\n\t$clbr"
 echo -e $serv_dir $opbr $port $root $ind $serv $loc $opbr $loc_sub $locphp $opbr $locphp_sub $clbr > /etc/nginx/sites-available/$domain_name
 sudo ln -s /etc/nginx/sites-available/$domain_name /etc/nginx/sites-enabled/
 
@@ -60,8 +60,8 @@ cd wordpress
 
 #3. Wordpress DB Config
 touch create_wp_db.sql
-echo "create database \`$domain_name.db\`" > create_wp_db.sql
-mysql -u root -p < create_wp_db.sql
+echo "create database \`$domain_name.db\`; create user \`wp_admin_$domain_name\`@\`localhost\` identified by 'Admin@123'; grant all privileges on \`$domain_name.db\`.* to \`wp_admin_$domain_name\`@\`localhost\`" > create_wp_db.sql
+mysql -u root < create_wp_db.sql
 
 if [ $? -ne 0 ]
 then
@@ -71,11 +71,13 @@ fi
 
 cp wp-config-sample.php wp-config.php
 sed -i "s/'DB_NAME', 'database_name_here'/'DB_NAME', '$domain_name.db'/g" wp-config.php
-echo "Enter MySQL DB User name:"
-read dbusername
+#echo "Enter MySQL DB User name:"
+#read dbusername
+dbusername="wp_admin_$domain_name"
 sed -i "s/'DB_USER', 'username_here'/'DB_USER', '$dbusername'/g" wp-config.php
-echo "Enter Password:"
-read dbuserpass 
+#echo "Enter Password:"
+#read dbuserpass 
+dbuserpass="Admin@123"
 sed -i "s/'DB_PASSWORD', 'password_here'/'DB_PASSWORD', '$dbuserpass'/g" wp-config.php
 
 if [ $? -ne 0 ]
