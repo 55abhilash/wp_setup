@@ -36,9 +36,15 @@ serv="\tserver_name $domain_name;\n"
 loc="\tlocation / "
 loc_sub="\t\ttry_files \$uri \$uri/ =404;\n\t$clbr"
 locphp="\tlocation ~ \.php$ "
-locphp_sub="\t\tfastcgi_pass unix:/run/php/php7.3-fpm.sock;\n\t\tfastcgi_index index.php;\n\t\tfastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;\n\t\tinclude fastcgi_params;\n\t$clbr"
+phpsock=`ls /var/run/php/ | grep ".sock"`
+if [ "$phpsock" = "" ]
+then
+	echo "$redc PHP Sock file does not exist. Error in PHP FPM setup"
+	exit
+fi
+locphp_sub="\t\tfastcgi_pass unix:/run/php/$phpsock;\n\t\tfastcgi_index index.php;\n\t\tfastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;\n\t\tinclude fastcgi_params;\n\t$clbr"
 echo -e $serv_dir $opbr $port $root $ind $serv $loc $opbr $loc_sub $locphp $opbr $locphp_sub $clbr > /etc/nginx/sites-available/$domain_name
-sudo ln -s /etc/nginx/sites-available/$domain_name /etc/nginx/sites-enabled/
+ln -s /etc/nginx/sites-available/$domain_name /etc/nginx/sites-enabled/
 
 if [ $? -ne 0 ]
 then
@@ -47,25 +53,34 @@ then
 fi
 
 cd /var/www/html
-wget http://wordpress.org/latest.zip
-unzip latest.zip
+#Check if latest.zip already exists
+if [ ! -f "/var/www/html/latest.zip" ]
+then 
+	wget http://wordpress.org/latest.zip
 
+	if [ $? -ne 0 ]
+	then
+		echo "$redc Error while downloading Wordpress"
+		exit
+	fi
+fi
+unzip latest.zip
 if [ $? -ne 0 ]
 then
-	echo "$redc Error while downloading or unzipping wordpress"
+	echo "$redc Error while unzipping Wordpress file"
 	exit
 fi
-
 cd wordpress
 
 #3. Wordpress DB Config
 touch create_wp_db.sql
 echo "create database \`$domain_name.db\`; create user \`wp_admin_$domain_name\`@\`localhost\` identified by 'Admin@123'; grant all privileges on \`$domain_name.db\`.* to \`wp_admin_$domain_name\`@\`localhost\`" > create_wp_db.sql
-mysql -u root < create_wp_db.sql
+echo "Enter MySQL root user password when prompted"
+mysql -u root -p < create_wp_db.sql
 
 if [ $? -ne 0 ]
 then
-	echo "Error in WP DB creation"
+	echo "Error in WP DB creation or WP Admin User creation"
 	exit
 fi
 
