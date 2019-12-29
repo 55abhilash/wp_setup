@@ -8,7 +8,7 @@ greenc="\e[32m"
 
 #1. LEMP Stack Installation
 sudo apt update
-sudo apt install nginx mysql-server mysql-client php php-fpm php-mysql
+sudo apt install nginx mysql-server mysql-client php php-fpm php-mysql unzip
 
 if [ $? -ne 0 ]
 then
